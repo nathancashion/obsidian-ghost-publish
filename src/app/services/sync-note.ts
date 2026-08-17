@@ -9,7 +9,7 @@ import { canonicalProbe } from './canonical-probe'
 import { buildLinkMap, substituteWikilinks } from './wikilink-resolver'
 import { uploadVaultImages } from './upload-vault-images'
 import { buildPostHtml } from './build-html'
-import { hasCitations, renderCitations } from './render-citations'
+import { citationConfigFingerprint, hasCitations, renderCitations } from './render-citations'
 import { embedYoutubeUrls } from './embed-youtube'
 import { embedLinkUrls } from './embed-links'
 import {
@@ -68,7 +68,13 @@ export async function syncNote(
     const fmTitle = fm['title']
     const title = typeof fmTitle === 'string' && fmTitle.trim().length > 0 ? fmTitle : file.basename
 
-    const contentHash = await sha256Hex(body)
+    // The hash covers the body plus the citation-config fingerprint: a
+    // config change (toggle, bibliography, CSL) must re-render, otherwise
+    // the "unchanged" short-circuit would silently keep stale output. The
+    // fingerprint is empty for non-citation presets, preserving their
+    // existing hashes.
+    const configFingerprint = citationConfigFingerprint(preset.citationsEnabled, settings.citations)
+    const contentHash = await sha256Hex(configFingerprint ? `${body} ${configFingerprint}` : body)
 
     const existingGhostId =
         typeof fm[fmKeys.ghostId] === 'string' ? (fm[fmKeys.ghostId] as string) : ''

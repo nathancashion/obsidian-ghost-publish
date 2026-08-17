@@ -5,9 +5,11 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
     buildPandocArgs,
+    citationConfigFingerprint,
     hasCitations,
     renderCitations,
-    resolveConfigPath
+    resolveConfigPath,
+    resolvePandocBinary
 } from './render-citations'
 
 describe('hasCitations', () => {
@@ -17,10 +19,20 @@ describe('hasCitations', () => {
         expect(hasCitations('Complex.[see @doe2020, p. 3; also @roe2019]')).toBe(true)
     })
 
+    test('detects bare in-text citations', () => {
+        expect(hasCitations('@doe2020 showed this first.')).toBe(true)
+        expect(hasCitations('As @hayGlobalRegionalNational2026 report…')).toBe(true)
+        expect(hasCitations('(@doe2020 agrees.)')).toBe(true)
+    })
+
+    test('escaped mentions still trigger processing (pandoc strips the escape)', () => {
+        expect(hasCitations('Ping \\@handle about this.')).toBe(true)
+    })
+
     test('ignores prose without citations', () => {
         expect(hasCitations('Plain text with a [link](https://example.com).')).toBe(false)
         expect(hasCitations('A footnote.[^1]\n\n[^1]: Body.')).toBe(false)
-        expect(hasCitations('Mention of @handle outside brackets.')).toBe(false)
+        expect(hasCitations('Mail me at first.last@example.com today.')).toBe(false)
         expect(hasCitations('')).toBe(false)
     })
 })
@@ -46,6 +58,48 @@ describe('resolveConfigPath', () => {
 
     test('empty input stays empty', () => {
         expect(resolveConfigPath('/vault', '  ')).toBe('')
+    })
+})
+
+describe('citationConfigFingerprint', () => {
+    const settings = { pandocPath: 'pandoc', bibliographyPath: '~/lib.bib', cslPath: '~/note.csl' }
+
+    test('empty when citations are disabled (preserves existing hashes)', () => {
+        expect(citationConfigFingerprint(false, settings)).toBe('')
+    })
+
+    test('changes when any configured path changes', () => {
+        const base = citationConfigFingerprint(true, settings)
+        expect(base).not.toBe('')
+        expect(
+            citationConfigFingerprint(true, { ...settings, bibliographyPath: '~/other.bib' })
+        ).not.toBe(base)
+        expect(citationConfigFingerprint(true, { ...settings, cslPath: '~/other.csl' })).not.toBe(
+            base
+        )
+        expect(
+            citationConfigFingerprint(true, { ...settings, pandocPath: '/usr/bin/pandoc' })
+        ).not.toBe(base)
+        expect(citationConfigFingerprint(true, { ...settings })).toBe(base)
+    })
+})
+
+describe('resolvePandocBinary', () => {
+    test('uses explicit paths as-is, with ~/ expansion', () => {
+        expect(resolvePandocBinary('/opt/homebrew/bin/pandoc')).toBe('/opt/homebrew/bin/pandoc')
+        expect(resolvePandocBinary('~/bin/pandoc')).toBe(join(homedir(), 'bin/pandoc'))
+    })
+
+    test('resolves a bare command against PATH-like directories', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'gp-bin-'))
+        writeFileSync(join(dir, 'pandoc'), '#!/bin/sh\n')
+        expect(resolvePandocBinary('pandoc', dir)).toBe(join(dir, 'pandoc'))
+    })
+
+    test('falls back to the bare command when nowhere to be found', () => {
+        expect(resolvePandocBinary('definitely-not-a-real-binary', '/nonexistent-dir')).toBe(
+            'definitely-not-a-real-binary'
+        )
     })
 })
 

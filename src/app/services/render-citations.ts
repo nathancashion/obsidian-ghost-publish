@@ -1,6 +1,8 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { isAbsolute, join } from 'node:path'
+import { delimiter, isAbsolute, join } from 'node:path'
+import { log } from '../../utils/log'
 
 /**
  * Academic citation rendering via pandoc + citeproc (desktop-only).
@@ -35,20 +37,72 @@ export interface CitationRenderOptions {
     vaultBasePath: string
 }
 
-/**
- * Bracketed pandoc citation (`[@key]`, `[-@key]`, `[see @key, p. 3]`).
- * Bare in-text `@key` citations deliberately do NOT trigger processing —
- * `@handle` mentions are too common in prose. Once at least one bracketed
- * citation opts the note in, pandoc renders bare keys too.
- */
+/** Bracketed pandoc citation: `[@key]`, `[-@key]`, `[see @key, p. 3]`. */
 const BRACKETED_CITATION_RE = /\[[^\]]*@[^\s\]]+[^\]]*\]/
+/**
+ * Bare in-text citation: `@key` not preceded by a word character (which
+ * excludes email addresses like `a@b.com`). An escaped `\@handle` still
+ * matches on purpose: the pandoc run is what strips the escape, so a note
+ * containing one must be processed. The cost of this looseness is that an
+ * unescaped `@handle` mention in a citations-enabled note is treated as a
+ * citekey (pandoc renders unresolved keys as `**handle?**`) — escape such
+ * mentions as `\@handle`.
+ */
+const BARE_CITATION_RE = /(?:^|[^\w])@[A-Za-z0-9_]/
 
 const PANDOC_TIMEOUT_MS = 60_000
 const PANDOC_MAX_BUFFER = 32 * 1024 * 1024
 
-/** Whether the markdown contains at least one bracketed citation. */
+/** Whether the markdown contains at least one pandoc citation. */
 export function hasCitations(markdown: string): boolean {
-    return BRACKETED_CITATION_RE.test(markdown)
+    return BRACKETED_CITATION_RE.test(markdown) || BARE_CITATION_RE.test(markdown)
+}
+
+/**
+ * Stable fingerprint of the configuration that shapes citation rendering.
+ * Folded into the note's content hash so flipping the preset toggle or
+ * changing pandoc/bibliography/CSL paths invalidates the "unchanged"
+ * short-circuit — otherwise a config change after a successful sync would
+ * silently never re-render (BR-SYNC-1). Empty when citations are off, so
+ * non-citation presets keep their existing hashes.
+ */
+export function citationConfigFingerprint(
+    citationsEnabled: boolean,
+    settings: Pick<CitationRenderOptions, 'pandocPath' | 'bibliographyPath' | 'cslPath'>
+): string {
+    if (!citationsEnabled) return ''
+    return `citations:${settings.pandocPath}|${settings.bibliographyPath}|${settings.cslPath}`
+}
+
+/**
+ * Resolve the pandoc executable. A configured value containing a path
+ * separator is used as-is (after `~/` expansion). A bare command is looked
+ * up on `PATH` — plus common install locations that GUI apps don't inherit
+ * on macOS (Obsidian is launched with the minimal launchd PATH, which
+ * excludes Homebrew's `/opt/homebrew/bin`).
+ */
+export function resolvePandocBinary(
+    pandocPath: string,
+    pathEnv: string | undefined = process.env['PATH']
+): string {
+    const trimmed = pandocPath.trim() || 'pandoc'
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+        return resolveConfigPath('', trimmed)
+    }
+    const dirs = [
+        ...(pathEnv ? pathEnv.split(delimiter) : []),
+        '/opt/homebrew/bin',
+        '/usr/local/bin',
+        '/usr/bin'
+    ]
+    for (const dir of dirs) {
+        if (!dir) continue
+        const candidate = join(dir, trimmed)
+        if (existsSync(candidate)) return candidate
+    }
+    // Not found anywhere: hand the bare command to execFile so its ENOENT
+    // surfaces the actionable "pandoc not found" message.
+    return trimmed
 }
 
 /**
@@ -100,7 +154,7 @@ export async function renderCitations(
         )
     }
     const csl = resolveConfigPath(options.vaultBasePath, options.cslPath)
-    const pandoc = options.pandocPath.trim() || 'pandoc'
+    const pandoc = resolvePandocBinary(options.pandocPath)
     return runPandoc(pandoc, buildPandocArgs(bibliography, csl), markdown)
 }
 
@@ -124,6 +178,11 @@ function runPandoc(command: string, args: string[], stdin: string): Promise<stri
                     const detail = stderr.trim() || error.message
                     reject(new Error(`pandoc failed: ${detail}`))
                     return
+                }
+                if (stderr.trim()) {
+                    // Non-fatal citeproc diagnostics, e.g. "reference X not
+                    // found" for an unescaped @handle or a stale citekey.
+                    log(`pandoc warnings: ${stderr.trim()}`, 'warn')
                 }
                 resolve(stdout)
             }

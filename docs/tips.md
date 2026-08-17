@@ -46,15 +46,18 @@ The footnotes section is published as a verbatim HTML card. Ghost's editor conve
 
 ## Academic citations
 
-Presets with **Render citations** enabled resolve bracketed [pandoc citations](https://pandoc.org/MANUAL.html#citation-syntax) against your bibliography before publishing (desktop-only; requires pandoc):
+Presets with **Render citations** enabled resolve [pandoc citations](https://pandoc.org/MANUAL.html#citation-syntax) against your bibliography before publishing (desktop-only; requires pandoc):
 
+- `@doe2020` — bare in-text citation (author names appear in your sentence)
 - `[@doe2020]` — full citation
 - `[-@doe2020]` — suppress the author
 - `[see @doe2020, p. 12; also @roe2019]` — prefixes, locators, multiple keys
 
-Configure the pandoc path, bibliography (`.bib` — a Zotero/BetterBibTeX auto-export works well), and CSL style under **Settings → Academic citations**. With a **note-class** CSL style (e.g. Chicago full note), citations are rendered as regular markdown footnotes — so they publish through the same pipeline as your own footnotes and get the same popup behavior on the blog.
+Configure the pandoc path, bibliography (`.bib` — a Zotero/BetterBibTeX auto-export works well), and CSL style under **Settings → Academic citations**. With a **note-class** CSL style (e.g. Chicago full note), citations are rendered as regular markdown footnotes — so they publish through the same pipeline as your own footnotes (blockquotes included) and get the same popup behavior on the blog. The post's own bibliography section is suppressed: note-style footnotes already carry the full citation.
 
-A note is only piped through pandoc when it contains at least one **bracketed** citation. Bare in-text `@key` mentions alone don't trigger processing (too easy to confuse with `@handle` mentions), but once a bracketed citation opts the note in, bare keys are rendered too. The post's own bibliography section is suppressed: note-style footnotes already carry the full citation.
+Because bare `@key` counts as a citation, an `@handle` mention in a citations-enabled note would be misread as a citekey (and render as `**handle?**`) — escape such mentions as `\@handle`. Email addresses are fine unescaped.
+
+Changing citation settings (or the preset toggle) re-syncs affected notes automatically — the content hash covers the citation config. One thing it can't see is edits **inside** your `.bib` file: to republish a note after fixing a library entry, touch the note body or delete its content-hash property.
 
 ## Bring your own frontmatter
 
