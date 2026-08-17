@@ -1,3 +1,4 @@
+import { FileSystemAdapter } from 'obsidian'
 import type { App, TFile } from 'obsidian'
 import type { GhostApiClient } from '../api/ghost-api-client'
 import type { PluginSettings } from '../types/plugin-settings.intf'
@@ -8,6 +9,7 @@ import { canonicalProbe } from './canonical-probe'
 import { buildLinkMap, substituteWikilinks } from './wikilink-resolver'
 import { uploadVaultImages } from './upload-vault-images'
 import { buildPostHtml } from './build-html'
+import { hasCitations, renderCitations } from './render-citations'
 import { embedYoutubeUrls } from './embed-youtube'
 import { embedLinkUrls } from './embed-links'
 import {
@@ -117,6 +119,20 @@ export async function syncNote(
 
     working = await uploadVaultImages(app, client, file.path, working)
     working = substituteWikilinks(working, linkMap)
+
+    // Citations run after wikilinks / images / markers are plain markdown
+    // (pandoc round-trips them untouched) and before the HTML build, so a
+    // note-class CSL style feeds citations into the footnote pipeline.
+    if (preset.citationsEnabled && hasCitations(working)) {
+        const adapter = app.vault.adapter
+        working = await renderCitations(working, {
+            pandocPath: settings.citations.pandocPath,
+            bibliographyPath: settings.citations.bibliographyPath,
+            cslPath: settings.citations.cslPath,
+            vaultBasePath: adapter instanceof FileSystemAdapter ? adapter.getBasePath() : ''
+        })
+    }
+
     working = working.replace(/\n{3,}/g, '\n\n').trim()
 
     if (!working) {

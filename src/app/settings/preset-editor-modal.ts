@@ -88,6 +88,19 @@ export class PresetEditorModal extends Modal {
                     .onChange((v) => (this.draft.canonicalUrlEnabled = v))
             )
 
+        new Setting(contentEl).setName('Academic citations').setHeading()
+
+        new Setting(contentEl)
+            .setName('Render citations')
+            .setDesc(
+                'Render bracketed pandoc citations ([@citekey]) via pandoc/citeproc before publishing. Configure pandoc, bibliography, and CSL style in the plugin settings.'
+            )
+            .addToggle((t) =>
+                t
+                    .setValue(this.draft.citationsEnabled)
+                    .onChange((v) => (this.draft.citationsEnabled = v))
+            )
+
         new Setting(contentEl).setName('Listing note').setHeading()
 
         new Setting(contentEl)
@@ -269,6 +282,7 @@ function clonePreset(p: Preset): Preset {
         newsletterSlug: p.newsletterSlug,
         ghostStatus: p.ghostStatus,
         canonicalUrlEnabled: p.canonicalUrlEnabled,
+        citationsEnabled: p.citationsEnabled,
         listingNoteEnabled: p.listingNoteEnabled,
         listingNotePath: p.listingNotePath
     }

@@ -25,6 +25,9 @@ export interface PluginSettings {
     skipCanonicalProbe: boolean
     debugModeEnabled: boolean
 
+    // ─── Academic citations (pandoc / citeproc, desktop-only) ───────────────
+    citations: CitationSettings
+
     // ─── Frontmatter property names (global, shared by all presets) ─────────
     frontmatter: FrontmatterPropertyNames
 
@@ -59,6 +62,27 @@ export interface FrontmatterPropertyNames {
     excerpt: string
 }
 
+/**
+ * Global pandoc/citeproc configuration. Citation processing itself is
+ * opted into per preset (`Preset.citationsEnabled`); these paths are
+ * shared by every preset that opts in. Paths may be absolute, `~/…`, or
+ * vault-relative.
+ */
+export interface CitationSettings {
+    /** pandoc executable — bare command resolved via PATH, or full path. */
+    pandocPath: string
+    /** Bibliography file (.bib / CSL JSON), e.g. a BetterBibTeX auto-export. */
+    bibliographyPath: string
+    /** CSL style file. Note-class styles render citations as footnotes. */
+    cslPath: string
+}
+
+export const DEFAULT_CITATIONS: CitationSettings = {
+    pandocPath: 'pandoc',
+    bibliographyPath: '',
+    cslPath: ''
+}
+
 export const DEFAULT_FRONTMATTER: FrontmatterPropertyNames = {
     eligibility: '',
     preset: 'ghost_publish_preset',
@@ -82,6 +106,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     mocTag: '',
     skipCanonicalProbe: false,
     debugModeEnabled: false,
+    citations: { ...DEFAULT_CITATIONS },
     frontmatter: { ...DEFAULT_FRONTMATTER },
     cachedTags: [],
     cachedNewsletters: [],

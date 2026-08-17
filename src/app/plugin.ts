@@ -1,8 +1,16 @@
 import { Notice, Plugin } from 'obsidian'
 import { produce } from 'immer'
 import type { Draft } from 'immer'
-import { DEFAULT_FRONTMATTER, DEFAULT_SETTINGS } from './types/plugin-settings.intf'
-import type { FrontmatterPropertyNames, PluginSettings } from './types/plugin-settings.intf'
+import {
+    DEFAULT_CITATIONS,
+    DEFAULT_FRONTMATTER,
+    DEFAULT_SETTINGS
+} from './types/plugin-settings.intf'
+import type {
+    CitationSettings,
+    FrontmatterPropertyNames,
+    PluginSettings
+} from './types/plugin-settings.intf'
 import type { Preset } from './types/preset.intf'
 import type { GhostNewsletterSummary, GhostTagSummary } from './types/ghost-api.intf'
 import { GhostPublishSettingTab } from './settings/settings-tab'
@@ -190,6 +198,7 @@ export class GhostPublishPlugin extends Plugin {
             if (typeof loaded.debugModeEnabled === 'boolean')
                 draft.debugModeEnabled = loaded.debugModeEnabled
 
+            draft.citations = mergeCitations(loaded.citations)
             draft.frontmatter = mergeFrontmatter(loaded.frontmatter)
 
             if (Array.isArray(loaded.cachedTags)) {
@@ -241,6 +250,16 @@ function isPresetLike(p: unknown): p is Preset {
     )
 }
 
+function mergeCitations(loaded: Partial<CitationSettings> | undefined): CitationSettings {
+    if (!loaded || typeof loaded !== 'object') return { ...DEFAULT_CITATIONS }
+    const out: CitationSettings = { ...DEFAULT_CITATIONS }
+    for (const key of Object.keys(DEFAULT_CITATIONS) as (keyof CitationSettings)[]) {
+        const v = loaded[key]
+        if (typeof v === 'string') out[key] = v
+    }
+    return out
+}
+
 function mergeFrontmatter(
     loaded: Partial<FrontmatterPropertyNames> | undefined
 ): FrontmatterPropertyNames {
@@ -269,6 +288,7 @@ function sanitizePreset(p: Preset): Preset {
             typeof p.canonicalUrlEnabled === 'boolean' ? p.canonicalUrlEnabled : false,
         listingNoteEnabled:
             typeof p.listingNoteEnabled === 'boolean' ? p.listingNoteEnabled : false,
-        listingNotePath: typeof p.listingNotePath === 'string' ? p.listingNotePath : ''
+        listingNotePath: typeof p.listingNotePath === 'string' ? p.listingNotePath : '',
+        citationsEnabled: typeof p.citationsEnabled === 'boolean' ? p.citationsEnabled : false
     }
 }

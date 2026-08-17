@@ -41,6 +41,7 @@ export class GhostPublishSettingTab extends PluginSettingTab {
         this.renderCanonicalSection(containerEl)
         this.renderTriageSection(containerEl)
         this.renderContentSection(containerEl)
+        this.renderCitationsSection(containerEl)
         this.renderFrontmatterSection(containerEl)
         this.renderCacheSection(containerEl)
         this.renderPresetsSection(containerEl)
@@ -184,6 +185,64 @@ export class GhostPublishSettingTab extends PluginSettingTab {
                     })
                 )
             })
+    }
+
+    // ─── Academic citations ────────────────────────────────────────────────
+
+    private renderCitationsSection(container: HTMLElement): void {
+        new Setting(container).setName('Academic citations').setHeading()
+
+        new Setting(container)
+            .setName('About citation rendering')
+            .setDesc(
+                'Presets with citations enabled render bracketed pandoc citations ([@citekey]) against the bibliography below. A note-class CSL style (e.g. Chicago full note) turns citations into footnotes. Requires pandoc; desktop-only.'
+            )
+
+        new Setting(container)
+            .setName('pandoc path')
+            .setDesc('Bare command resolved via PATH, or a full path to the executable.')
+            .addText((t) =>
+                t
+                    .setPlaceholder('pandoc')
+                    .setValue(this.plugin.settings.citations.pandocPath)
+                    .onChange((v) =>
+                        this.mutateSettings((d) => {
+                            d.citations.pandocPath = v.trim()
+                        })
+                    )
+            )
+
+        new Setting(container)
+            .setName('Bibliography file')
+            .setDesc(
+                'Path to a .bib or CSL JSON file (e.g. a BetterBibTeX auto-export). Absolute, ~/…, or vault-relative.'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('~/Zotero/library.bib')
+                    .setValue(this.plugin.settings.citations.bibliographyPath)
+                    .onChange((v) =>
+                        this.mutateSettings((d) => {
+                            d.citations.bibliographyPath = v.trim()
+                        })
+                    )
+            )
+
+        new Setting(container)
+            .setName('CSL style file')
+            .setDesc(
+                'Path to a .csl style. Use a note-class style so citations publish as footnotes. Empty uses the pandoc default (author-date, inline).'
+            )
+            .addText((t) =>
+                t
+                    .setPlaceholder('~/Zotero/styles/chicago-fullnote-bibliography.csl')
+                    .setValue(this.plugin.settings.citations.cslPath)
+                    .onChange((v) =>
+                        this.mutateSettings((d) => {
+                            d.citations.cslPath = v.trim()
+                        })
+                    )
+            )
     }
 
     // ─── Frontmatter property names ────────────────────────────────────────

@@ -40,6 +40,12 @@ export interface Preset {
     listingNoteEnabled: boolean
     /** Vault-relative path of the listing note. Created if missing. */
     listingNotePath: string
+    /**
+     * When true, bracketed pandoc citations (`[@citekey]`) in the note body
+     * are rendered via pandoc/citeproc against the global citation settings
+     * before publishing. Desktop-only; requires pandoc and a bibliography.
+     */
+    citationsEnabled: boolean
 }
 
 export interface PresetTagRef {
@@ -58,6 +64,7 @@ export function newPreset(id: string, name: string): Preset {
         ghostStatus: 'published',
         canonicalUrlEnabled: false,
         listingNoteEnabled: false,
-        listingNotePath: ''
+        listingNotePath: '',
+        citationsEnabled: false
     }
 }

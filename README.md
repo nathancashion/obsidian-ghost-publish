@@ -13,7 +13,8 @@ Publish your vault notes to a [Ghost](https://ghost.org) blog with configurable 
 - **Image upload** — every `![[image]]` embed is uploaded to Ghost and rewritten to a Ghost image card.
 - **Wikilink resolution** — known-URL map, optional public-mirror lookup, bold-text fallback.
 - **Embed upgrades** — YouTube links become Ghost oembed cards; `LINK:` blocks become bookmark cards.
-- **Footnotes** — Markdown footnotes (`text[^1]`, `[^1]: …`, and inline `^[…]`) are rendered to proper footnote anchors and a footnotes section on the published post.
+- **Footnotes** — Markdown footnotes (`text[^1]`, `[^1]: …`, and inline `^[…]`) are rendered to proper footnote anchors and a footnotes section on the published post — published as a verbatim HTML card so anchor targets survive and theme footnote scripts (e.g. Littlefoot popovers) keep working.
+- **Academic citations (optional, per preset)** — bracketed pandoc citations (`[@citekey]`) are resolved against your `.bib` bibliography via `pandoc --citeproc`; with a note-class CSL style they publish as regular footnotes. Bring your Zotero/BetterBibTeX library.
 - **Configurable frontmatter keys** — bring your own property names so existing vaults can keep their conventions.
 - **Listing notes (optional)** — per preset, maintain a markdown index of every post currently published.
 - **What's new after updates.** After a plugin update, a one-time dialog shows the release notes you just received (including skipped versions) with ways to support development. Never shown on fresh installs or regular restarts.

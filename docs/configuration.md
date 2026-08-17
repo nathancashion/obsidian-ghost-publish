@@ -34,6 +34,16 @@ Open **Settings → Ghost Publish**. Settings persist via the standard `loadData
 | **Strip sections** | textarea | `""`    | H2 section titles to remove before publishing. Case- and punctuation-insensitive.       |
 | **Known URL map**  | textarea | `""`    | Maps wikilink targets to canonical external URLs. Format `NoteName=https://…` per line. |
 
+## Academic citations
+
+Global pandoc/citeproc configuration. Citation rendering is opted into **per preset** (see Presets below); these paths are shared by every preset that opts in. Desktop-only — requires [pandoc](https://pandoc.org/) installed locally.
+
+| Setting               | Type | Default  | Description                                                                                                                                             |
+| --------------------- | ---- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **pandoc path**       | text | `pandoc` | Bare command resolved via `PATH`, or a full path to the executable.                                                                                     |
+| **Bibliography file** | text | `""`     | `.bib` or CSL JSON file (e.g. a Zotero/BetterBibTeX auto-export). Absolute, `~/…`, or vault-relative.                                                   |
+| **CSL style file**    | text | `""`     | `.csl` style. Use a **note-class** style (e.g. Chicago full note) so citations publish as footnotes. Empty uses pandoc's default (author-date, inline). |
+
 ## Frontmatter properties
 
 Customise the property names the plugin reads / writes. Defaults shown.
@@ -63,16 +73,17 @@ Refreshing is **manual only** — the plugin never auto-fetches.
 
 Each preset is edited via a modal:
 
-| Field                 | Description                                                                        |
-| --------------------- | ---------------------------------------------------------------------------------- |
-| **Name**              | Shown as the panel tab label.                                                      |
-| **Enabled**           | Disabled presets don't show as tabs.                                               |
-| **Status**            | `published` (default) or `draft`.                                                  |
-| **Tags**              | Ordered list. First tag is Ghost's primary tag. Autocomplete from the cached tags. |
-| **Newsletter**        | Picked from the dropdown of cached newsletters. Empty disables email opt-in.       |
-| **Canonical URL**     | Enable to set `canonical_url` + add a "Canonical version" callout.                 |
-| **Listing note**      | Maintain a vault note linking every post currently published under this preset.    |
-| **Listing note path** | Vault-relative path. Created with intermediate folders if missing.                 |
+| Field                 | Description                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**              | Shown as the panel tab label.                                                                                                        |
+| **Enabled**           | Disabled presets don't show as tabs.                                                                                                 |
+| **Status**            | `published` (default) or `draft`.                                                                                                    |
+| **Tags**              | Ordered list. First tag is Ghost's primary tag. Autocomplete from the cached tags.                                                   |
+| **Newsletter**        | Picked from the dropdown of cached newsletters. Empty disables email opt-in.                                                         |
+| **Canonical URL**     | Enable to set `canonical_url` + add a "Canonical version" callout.                                                                   |
+| **Render citations**  | Render bracketed pandoc citations (`[@citekey]`) via pandoc/citeproc before publishing. Uses the global Academic citations settings. |
+| **Listing note**      | Maintain a vault note linking every post currently published under this preset.                                                      |
+| **Listing note path** | Vault-relative path. Created with intermediate folders if missing.                                                                   |
 
 Reorder presets in the list using the up / down arrows. The eye icon toggles enabled / disabled without deleting the preset.
 
