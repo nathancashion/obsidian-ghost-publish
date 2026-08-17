@@ -42,6 +42,8 @@ Markdown footnotes are published as proper footnotes:
 
 Footnotes are numbered by the order their references first appear, not the order the definitions are written. A definition that is never referenced is dropped, and a reference with no matching definition is left as literal text. The rendered post gets superscript anchors and a footnotes section at the bottom.
 
+The footnotes section is published as a verbatim HTML card. Ghost's editor conversion otherwise strips the `id` anchors that footnote references point at, which silently breaks in-page footnote navigation and theme footnote scripts (e.g. [Littlefoot](https://littlefoot.js.org/) popovers). With the HTML card, both work like footnotes written in a native Markdown card.
+
 ## Bring your own frontmatter
 
 If you already use a specific naming convention, set the frontmatter properties in settings to match. Every key is configurable. The plugin reads / writes only what you tell it to.

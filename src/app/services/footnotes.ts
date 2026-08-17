@@ -9,7 +9,19 @@ import type { TokenizerThis, Tokens } from 'marked'
  * footnotes) would otherwise leak into Ghost as broken reference-style links.
  * This module renders them to the standard footnote HTML structure
  * (superscript anchors + a trailing `<section class="footnotes">` ordered
- * list) that Ghost preserves when converting `source=html` to lexical.
+ * list).
+ *
+ * The footnotes section is wrapped in `<!--kg-card-begin: html-->` /
+ * `<!--kg-card-end: html-->` markers. Ghost's `source=html` importer
+ * flattens ordinary markup into lexical nodes, and lexical list items
+ * cannot carry `id` attributes — which silently breaks the `#fn-N` anchor
+ * targets (and with them footnote scripts like Littlefoot on the theme
+ * side). The markers make the importer store the section verbatim as an
+ * html card, so the `<li id="fn-N">` targets survive publishing. Inline
+ * references become `<a href="#fn-N"><sup>N</sup></a>` after Ghost's
+ * conversion (the `id="fnref-N"` back-targets are stripped); footnote
+ * scripts match refs by href pattern, so popups are unaffected — only
+ * no-JS backref navigation degrades.
  *
  * State (collected definitions, reference order, numbering) is per parse, so
  * a fresh `Marked` instance with fresh closures is built on every call.
@@ -213,9 +225,11 @@ export function parseMarkdownWithFootnotes(markdown: string): string {
                 })
                 return (
                     html +
-                    `\n<section class="footnotes" data-footnotes>\n<ol>\n` +
+                    `\n<!--kg-card-begin: html-->\n` +
+                    `<section class="footnotes" data-footnotes>\n<ol>\n` +
                     items.join('\n') +
-                    `\n</ol>\n</section>\n`
+                    `\n</ol>\n</section>\n` +
+                    `<!--kg-card-end: html-->\n`
                 )
             }
         }

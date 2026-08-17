@@ -20,6 +20,24 @@ describe('parseMarkdownWithFootnotes', () => {
         expect(html).toContain('class="footnote-backref"')
     })
 
+    test('wraps the footnotes section in kg html-card markers', () => {
+        const md = ['A claim.[^1]', '', '[^1]: The supporting source.'].join('\n')
+        const html = parseMarkdownWithFootnotes(md)
+
+        // Ghost's source=html importer flattens plain markup into lexical
+        // nodes whose list items cannot carry ids, killing the #fn-N anchor
+        // targets. The kg-card markers force a verbatim html card instead.
+        const begin = html.indexOf('<!--kg-card-begin: html-->')
+        const end = html.indexOf('<!--kg-card-end: html-->')
+        const section = html.indexOf('<section class="footnotes"')
+        expect(begin).toBeGreaterThan(-1)
+        expect(end).toBeGreaterThan(begin)
+        expect(section).toBeGreaterThan(begin)
+        expect(section).toBeLessThan(end)
+        // The markers wrap ONLY the footnotes section, not the body.
+        expect(begin).toBeGreaterThan(html.indexOf('A claim.'))
+    })
+
     test('numbers footnotes by reference order, not definition order', () => {
         const md = ['First.[^a] Second.[^b]', '', '[^b]: Beta.', '[^a]: Alpha.'].join('\n')
         const html = parseMarkdownWithFootnotes(md)
