@@ -2,28 +2,32 @@ import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { delimiter, isAbsolute, join } from 'node:path'
+import { marked } from 'marked'
 import { log } from '../../utils/log'
 
 /**
- * Academic citation rendering via pandoc + citeproc (desktop-only).
+ * Academic citation rendering via pandoc + citeproc (desktop-only),
+ * Quarto-style: citations render **inline** in the prose (author-date,
+ * numeric, … — whatever the configured CSL style dictates), each linked
+ * to its entry in a trailing **References** section.
  *
- * Notes can cite Zotero/BetterBibTeX entries with pandoc citation syntax
- * (`[@citekey]`, `[-@citekey]`, `[see @citekey, p. 3]`). Before the HTML
- * build, the markdown body is piped through `pandoc --citeproc`, which
- * resolves the keys against the configured bibliography and rewrites the
- * citations in the configured CSL style. With a note-class CSL style
- * (e.g. Chicago full note), citations come back as regular markdown
- * footnotes — which then flow through the existing footnote pipeline and
- * publish as popup-compatible footnote HTML (BR-PROC-5/6).
+ * Notes cite Zotero/BetterBibTeX entries with pandoc citation syntax
+ * (`@citekey`, `[@citekey]`, `[see @citekey, p. 3]`). The markdown body
+ * is piped through `pandoc --citeproc` with `link-citations`, so each
+ * rendered citation carries a `#ref-<citekey>` link. The `::: {#refs}`
+ * div pandoc emits is converted here into a raw-HTML References section
+ * wrapped in kg html-card markers: Ghost's `source=html` importer strips
+ * `id` attributes from ordinary markup (same failure mode as BR-PROC-6),
+ * and the `id="ref-<citekey>"` entries are what citation links target and
+ * what the theme's hover-popover script reads.
+ *
+ * The pandoc writer keeps `fenced_divs` (we parse the refs div) but drops
+ * `bracketed_spans`, so csl-entry span wrappers unwrap to plain text
+ * instead of leaking `[…]{.csl-…}` syntax through `marked`.
  *
  * The markdown → markdown round trip is why this step runs late in the
  * sync pipeline: wikilinks, vault images, and embed markers are already
  * resolved to plain markdown that pandoc passes through unchanged.
- *
- * The post's own bibliography section is suppressed
- * (`suppress-bibliography`): note-style footnotes already carry the full
- * citation, and standalone annotated bibliography pages are a separate
- * concern.
  */
 
 export interface CitationRenderOptions {
@@ -71,7 +75,10 @@ export function citationConfigFingerprint(
     settings: Pick<CitationRenderOptions, 'pandocPath' | 'bibliographyPath' | 'cslPath'>
 ): string {
     if (!citationsEnabled) return ''
-    return `citations:${settings.pandocPath}|${settings.bibliographyPath}|${settings.cslPath}`
+    // The version marker invalidates hashes when the citation pipeline
+    // itself changes output shape (v2: inline citations + References
+    // section replaced the earlier footnote-style rendering).
+    return `citations:v2:${settings.pandocPath}|${settings.bibliographyPath}|${settings.cslPath}`
 }
 
 /**
@@ -119,18 +126,20 @@ export function resolveConfigPath(vaultBasePath: string, configuredPath: string)
 
 /**
  * Build the pandoc argument list. Markdown → markdown keeps the rest of
- * the pipeline unchanged; `fenced_divs` / `bracketed_spans` are disabled
- * in the writer so citeproc's `::: {#refs}` / `[…]{.csl-…}` wrappers can
- * never leak syntax that `marked` renders literally.
+ * the pipeline unchanged. `link-citations` makes every rendered citation
+ * link to its `#ref-<citekey>` entry. The writer keeps `fenced_divs` (the
+ * refs div is parsed by `convertReferencesDiv`) but drops
+ * `bracketed_spans` so csl span wrappers can't leak `[…]{.csl-…}` syntax
+ * that `marked` renders literally.
  */
 export function buildPandocArgs(bibliographyPath: string, cslPath: string): string[] {
     const args = [
         '--from=markdown',
-        '--to=markdown-fenced_divs-bracketed_spans',
+        '--to=markdown-bracketed_spans',
         '--wrap=none',
         '--citeproc',
         `--bibliography=${bibliographyPath}`,
-        '--metadata=suppress-bibliography:true'
+        '--metadata=link-citations:true'
     ]
     if (cslPath) {
         args.push(`--csl=${cslPath}`)
@@ -138,10 +147,86 @@ export function buildPandocArgs(bibliographyPath: string, cslPath: string): stri
     return args
 }
 
+/** Matches the opening line of a pandoc fenced div with an id, capturing it. */
+const DIV_OPEN_RE = /^:{3,}\s*\{#([^\s}]+)[^}]*\}\s*$/
+/** Matches any fenced-div opening line (id or classes only). */
+const DIV_ANY_OPEN_RE = /^:{3,}\s*\{[^}]*\}\s*$/
+/** Matches a bare fenced-div closing line. */
+const DIV_CLOSE_RE = /^:{3,}\s*$/
+
 /**
- * Render citations in `markdown` via pandoc/citeproc. Throws with a
- * user-actionable message when configuration is missing or pandoc fails;
- * the sync orchestrator surfaces it as a failed note (BR-SYNC-5).
+ * Replace pandoc's `::: {#refs}` fenced div with a raw-HTML References
+ * section wrapped in kg html-card markers. Each `::: {#ref-<citekey>}`
+ * entry becomes `<div class="csl-entry" id="ref-<citekey>">…</div>` with
+ * its body rendered from markdown — preserving the ids that inline
+ * citation links target and that the theme's hover-popover script reads.
+ * `marked` passes the raw HTML block (and the kg comments) through to the
+ * final post untouched. Markdown without a refs div is returned as-is.
+ */
+export function convertReferencesDiv(markdown: string): string {
+    const lines = markdown.split('\n')
+    const start = lines.findIndex((line) => DIV_OPEN_RE.exec(line)?.[1] === 'refs')
+    if (start === -1) return markdown
+
+    // Find the matching close of the #refs div, tracking nested divs.
+    let depth = 0
+    let end = -1
+    for (let i = start; i < lines.length; i++) {
+        const line = lines[i] ?? ''
+        if (DIV_ANY_OPEN_RE.test(line)) depth++
+        else if (DIV_CLOSE_RE.test(line)) {
+            depth--
+            if (depth === 0) {
+                end = i
+                break
+            }
+        }
+    }
+    if (end === -1) return markdown
+
+    // Collect the csl entries inside the refs div.
+    const entries: { id: string; body: string }[] = []
+    let current: { id: string; body: string[] } | null = null
+    for (let i = start + 1; i < end; i++) {
+        const line = lines[i] ?? ''
+        const open = DIV_OPEN_RE.exec(line)
+        if (open) {
+            const id = open[1]
+            if (id !== undefined) current = { id, body: [] }
+            continue
+        }
+        if (DIV_CLOSE_RE.test(line)) {
+            if (current) {
+                entries.push({ id: current.id, body: current.body.join('\n').trim() })
+                current = null
+            }
+            continue
+        }
+        if (current) current.body.push(line)
+    }
+    if (entries.length === 0) return markdown
+
+    const entriesHtml = entries.map(({ id, body }) => {
+        const rendered = marked.parse(body, { async: false }).trim()
+        return `<div class="csl-entry" id="${id}">${rendered}</div>`
+    })
+    const section =
+        `<!--kg-card-begin: html-->\n` +
+        `<section class="references" id="refs" data-references>\n` +
+        `<h2>References</h2>\n` +
+        entriesHtml.join('\n') +
+        `\n</section>\n` +
+        `<!--kg-card-end: html-->`
+
+    return [...lines.slice(0, start), section, ...lines.slice(end + 1)].join('\n')
+}
+
+/**
+ * Render citations in `markdown` via pandoc/citeproc: inline citations
+ * (per the configured CSL style) linking into a trailing References
+ * section. Throws with a user-actionable message when configuration is
+ * missing or pandoc fails; the sync orchestrator surfaces it as a failed
+ * note (BR-SYNC-5).
  */
 export async function renderCitations(
     markdown: string,
@@ -155,7 +240,8 @@ export async function renderCitations(
     }
     const csl = resolveConfigPath(options.vaultBasePath, options.cslPath)
     const pandoc = resolvePandocBinary(options.pandocPath)
-    return runPandoc(pandoc, buildPandocArgs(bibliography, csl), markdown)
+    const out = await runPandoc(pandoc, buildPandocArgs(bibliography, csl), markdown)
+    return convertReferencesDiv(out)
 }
 
 /** Run pandoc with `stdin` piped in, resolving with stdout. */

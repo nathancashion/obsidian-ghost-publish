@@ -53,7 +53,7 @@ Presets with **Render citations** enabled resolve [pandoc citations](https://pan
 - `[-@doe2020]` — suppress the author
 - `[see @doe2020, p. 12; also @roe2019]` — prefixes, locators, multiple keys
 
-Configure the pandoc path, bibliography (`.bib` — a Zotero/BetterBibTeX auto-export works well), and CSL style under **Settings → Academic citations**. With a **note-class** CSL style (e.g. Chicago full note), citations are rendered as regular markdown footnotes — so they publish through the same pipeline as your own footnotes (blockquotes included) and get the same popup behavior on the blog. The post's own bibliography section is suppressed: note-style footnotes already carry the full citation.
+Configure the pandoc path, bibliography (`.bib` — a Zotero/BetterBibTeX auto-export works well), and CSL style under **Settings → Academic citations**. Citations render **inline**, exactly as the CSL style dictates — author-date styles give `Doe et al. (2020)`, numeric styles like Vancouver give `(1)` — with each citation linked to its entry in a **References** section appended to the post (Quarto-style). The entry ids survive publishing, so a small theme script can show the full reference in a hover popover. Your own footnotes (`[^1]`, `^[aside]`) are unaffected and keep their separate footnote popups.
 
 Because bare `@key` counts as a citation, an `@handle` mention in a citations-enabled note would be misread as a citekey (and render as `**handle?**`) — escape such mentions as `\@handle`. Email addresses are fine unescaped.
 

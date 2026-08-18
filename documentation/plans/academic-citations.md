@@ -5,17 +5,21 @@ popup citations, following the bibliography-first model in the user's Ghost
 blogging-platform spec (Zotero/BetterBibTeX → `.bib` → pandoc citeproc →
 Ghost; hover popups via Littlefoot on the theme side).
 
-## Phase 1 — citeproc core (DONE)
+## Phase 1 — citeproc core (DONE, reworked 2026-08-18)
 
-- `services/render-citations.ts`: pipe the note body through
-  `pandoc --citeproc` (markdown → markdown) against a configured
-  bibliography + CSL style. Note-class styles emit citations as markdown
-  footnotes, which flow through the existing footnote pipeline
-  (BR-PROC-5/6) and get Littlefoot popovers on the theme.
+Quarto-style rendering (user correction of the original footnote-style
+design): citations render **inline** per the CSL style, linked
+(`link-citations`) to entries in a trailing **References** section that
+publishes as a kg html card (id preservation). Theme-side hover popovers
+(Forest `default.hbs`) show the full reference on `a[href^="#ref-"]` —
+separate from Littlefoot, which stays for real footnotes.
+
+- `services/render-citations.ts`: pandoc --citeproc markdown → markdown;
+  `convertReferencesDiv` turns the `::: {#refs}` div into the html card.
 - Global settings (`settings.citations`): pandoc path, bibliography path,
   CSL path. Per-preset opt-in (`citationsEnabled`).
-- Trigger: at least one bracketed `[@key]` citation in the body.
-- Bibliography section suppressed (footnotes carry full citations).
+- Trigger: bracketed `[@key]` or bare `@key` (word-boundary guarded).
+- Hash carries a citation-config fingerprint incl. pipeline version.
 - Covered by `render-citations.spec.ts` incl. a real-pandoc integration
   test (skipped when pandoc is unavailable).
 
@@ -44,8 +48,11 @@ posts. Cheap, but deferred until the spec decides it's wanted.
 
 ## Open questions
 
-- CSL style: assumed note-class (footnote citations). If the user prefers
-  author-date inline citations, popups need a different mechanism than
-  footnotes.
+- ~~CSL style: note-class vs inline~~ — resolved 2026-08-18: inline,
+  Quarto-style, with theme popovers. Current style: official Vancouver
+  (`~/Development/Ghost/citation-styles/vancouver.csl`); the note-class
+  variant (`vancouver-note.csl`) is kept in the same folder but unused.
 - Whether Phase 2 pages should be Ghost pages (no feed/email) or posts
   under a dedicated tag. Leaning pages.
+- Phase 3 linking now naturally attaches to References entries (append a
+  "→ my notes" link inside `#ref-<citekey>` divs) and/or the popover.

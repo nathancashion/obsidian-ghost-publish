@@ -6,11 +6,13 @@ import { join } from 'node:path'
 import {
     buildPandocArgs,
     citationConfigFingerprint,
+    convertReferencesDiv,
     hasCitations,
     renderCitations,
     resolveConfigPath,
     resolvePandocBinary
 } from './render-citations'
+import { parseMarkdownWithFootnotes } from './footnotes'
 
 describe('hasCitations', () => {
     test('detects bracketed citations', () => {
@@ -104,20 +106,61 @@ describe('resolvePandocBinary', () => {
 })
 
 describe('buildPandocArgs', () => {
-    test('builds a citeproc markdown round trip with the bibliography', () => {
+    test('builds a citeproc markdown round trip with linked citations', () => {
         const args = buildPandocArgs('/refs/library.bib', '')
         expect(args).toContain('--citeproc')
         expect(args).toContain('--bibliography=/refs/library.bib')
         expect(args).toContain('--from=markdown')
-        // Writer must not emit fenced divs / bracketed spans — marked would
-        // render the ::: and []{.class} syntax literally.
-        expect(args).toContain('--to=markdown-fenced_divs-bracketed_spans')
+        // Citations must link to their References entries for the theme's
+        // hover popovers; the bibliography is rendered, not suppressed.
+        expect(args).toContain('--metadata=link-citations:true')
+        expect(args.some((a) => a.includes('suppress-bibliography'))).toBe(false)
+        // Writer keeps fenced_divs (the refs div is parsed downstream) but
+        // must not emit bracketed spans — marked renders []{.class} literally.
+        expect(args).toContain('--to=markdown-bracketed_spans')
         expect(args.some((a) => a.startsWith('--csl='))).toBe(false)
     })
 
     test('adds the CSL style only when configured', () => {
-        const args = buildPandocArgs('/refs/library.bib', '/styles/note.csl')
-        expect(args).toContain('--csl=/styles/note.csl')
+        const args = buildPandocArgs('/refs/library.bib', '/styles/vancouver.csl')
+        expect(args).toContain('--csl=/styles/vancouver.csl')
+    })
+})
+
+describe('convertReferencesDiv', () => {
+    const PANDOC_OUTPUT = [
+        'Prose with a citation ([Doe 2020](#ref-doe2020)).',
+        '',
+        '::: {#refs .references .csl-bib-body .hanging-indent}',
+        '::: {#ref-doe2020 .csl-entry}',
+        'Doe J. 2020. *A Fine Paper*. [https://doi.org/x](https://doi.org/x)',
+        ':::',
+        '',
+        '::: {#ref-roe2019 .csl-entry}',
+        'Roe R. 2019. Another Paper.',
+        ':::',
+        ':::'
+    ].join('\n')
+
+    test('replaces the refs div with an html-card References section', () => {
+        const out = convertReferencesDiv(PANDOC_OUTPUT)
+        expect(out).toContain('<!--kg-card-begin: html-->')
+        expect(out).toContain('<section class="references" id="refs" data-references>')
+        expect(out).toContain('<h2>References</h2>')
+        expect(out).toContain('<div class="csl-entry" id="ref-doe2020">')
+        expect(out).toContain('<div class="csl-entry" id="ref-roe2019">')
+        // Entry markdown is rendered (italics, links)…
+        expect(out).toContain('<em>A Fine Paper</em>')
+        expect(out).toContain('<a href="https://doi.org/x">')
+        // …no fenced-div syntax leaks…
+        expect(out).not.toContain(':::')
+        // …and the prose (with its citation link) is untouched.
+        expect(out).toContain('Prose with a citation ([Doe 2020](#ref-doe2020)).')
+    })
+
+    test('passes markdown without a refs div through unchanged', () => {
+        const md = 'Plain prose.\n\n> A quote.\n'
+        expect(convertReferencesDiv(md)).toBe(md)
     })
 })
 
@@ -152,25 +195,6 @@ describe('renderCitations', () => {
         }
     })()
 
-    // A minimal CSL note-class style: citations render as footnotes whose
-    // text is the entry title. Mirrors the real setup (Chicago full note)
-    // closely enough to prove the citation → footnote → pipeline handoff.
-    const NOTE_CSL = `<?xml version="1.0" encoding="utf-8"?>
-<style xmlns="http://purl.org/net/xbiblio/csl" class="note" version="1.0">
-  <info>
-    <title>Test note style</title>
-    <id>test-note-style</id>
-    <updated>2020-01-01T00:00:00+00:00</updated>
-  </info>
-  <citation>
-    <layout><text variable="title"/></layout>
-  </citation>
-  <bibliography>
-    <layout><text variable="title"/></layout>
-  </bibliography>
-</style>
-`
-
     const BIB = `@article{doe2020,
   author  = {Doe, Jane},
   title   = {A Fine Paper},
@@ -180,29 +204,35 @@ describe('renderCitations', () => {
 `
 
     test.skipIf(!pandocAvailable)(
-        'renders bracketed citations as footnotes via a note-class style',
+        'renders citations inline with a linked References section',
         async () => {
             const dir = mkdtempSync(join(tmpdir(), 'gp-citations-'))
             writeFileSync(join(dir, 'library.bib'), BIB)
-            writeFileSync(join(dir, 'note.csl'), NOTE_CSL)
 
-            const out = await renderCitations('A cited claim.[@doe2020]', {
+            // pandoc default style: chicago author-date, inline.
+            const out = await renderCitations('Bare cite: @doe2020 says so. Bracketed.[@doe2020]', {
                 pandocPath: 'pandoc',
                 bibliographyPath: 'library.bib',
-                cslPath: 'note.csl',
+                cslPath: '',
                 vaultBasePath: dir
             })
 
-            // Citation became a markdown footnote carrying the citation text
-            // (pandoc sentence-cases unprotected BibTeX titles)…
-            expect(out).toContain('[^1]')
+            // Citations render inline (author-date) and link to the entry…
+            expect(out).toContain('](#ref-doe2020)')
+            expect(out).not.toContain('[^1]')
+            // …the References section is an html card with the entry id…
+            expect(out).toContain('<!--kg-card-begin: html-->')
+            expect(out).toContain('<div class="csl-entry" id="ref-doe2020">')
             expect(out).toMatch(/a fine paper/i)
-            // …the body text survived…
-            expect(out).toContain('A cited claim.')
-            // …and the bibliography section was suppressed (title appears
-            // once, in the footnote — not a second time in a refs section).
-            expect(out.match(/a fine paper/gi)?.length).toBe(1)
+            // …and no fenced-div syntax leaks through.
             expect(out).not.toContain(':::')
+
+            // The downstream footnote renderer must pass the raw-HTML
+            // References section through to the final post untouched.
+            const html = parseMarkdownWithFootnotes(out)
+            expect(html).toContain('<section class="references" id="refs" data-references>')
+            expect(html).toContain('<div class="csl-entry" id="ref-doe2020">')
+            expect(html).toContain('<!--kg-card-begin: html-->')
         }
     )
 

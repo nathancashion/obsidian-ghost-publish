@@ -93,7 +93,7 @@ export class PresetEditorModal extends Modal {
         new Setting(contentEl)
             .setName('Render citations')
             .setDesc(
-                'Render bracketed pandoc citations ([@citekey]) via pandoc/citeproc before publishing. Configure pandoc, bibliography, and CSL style in the plugin settings.'
+                'Render pandoc citations (@citekey, [@citekey]) as inline citations with a References section before publishing. Configure pandoc, bibliography, and CSL style in the plugin settings.'
             )
             .addToggle((t) =>
                 t

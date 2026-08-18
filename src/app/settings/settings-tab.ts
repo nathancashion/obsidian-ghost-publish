@@ -195,7 +195,7 @@ export class GhostPublishSettingTab extends PluginSettingTab {
         new Setting(container)
             .setName('About citation rendering')
             .setDesc(
-                'Presets with citations enabled render bracketed pandoc citations ([@citekey]) against the bibliography below. A note-class CSL style (e.g. Chicago full note) turns citations into footnotes. Requires pandoc; desktop-only.'
+                'Presets with citations enabled render pandoc citations (@citekey, [@citekey]) against the bibliography below as inline citations linked to a References section, styled by the CSL file. Requires pandoc; desktop-only.'
             )
 
         new Setting(container)
@@ -231,11 +231,11 @@ export class GhostPublishSettingTab extends PluginSettingTab {
         new Setting(container)
             .setName('CSL style file')
             .setDesc(
-                'Path to a .csl style. Use a note-class style so citations publish as footnotes. Empty uses the pandoc default (author-date, inline).'
+                'Path to a .csl style controlling inline citation appearance and reference formatting. Empty uses the pandoc default (Chicago author-date).'
             )
             .addText((t) =>
                 t
-                    .setPlaceholder('~/Zotero/styles/chicago-fullnote-bibliography.csl')
+                    .setPlaceholder('~/Zotero/styles/vancouver.csl')
                     .setValue(this.plugin.settings.citations.cslPath)
                     .onChange((v) =>
                         this.mutateSettings((d) => {

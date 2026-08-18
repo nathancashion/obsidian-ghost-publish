@@ -38,11 +38,11 @@ Open **Settings → Ghost Publish**. Settings persist via the standard `loadData
 
 Global pandoc/citeproc configuration. Citation rendering is opted into **per preset** (see Presets below); these paths are shared by every preset that opts in. Desktop-only — requires [pandoc](https://pandoc.org/) installed locally.
 
-| Setting               | Type | Default  | Description                                                                                                                                             |
-| --------------------- | ---- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **pandoc path**       | text | `pandoc` | Bare command resolved via `PATH`, or a full path to the executable.                                                                                     |
-| **Bibliography file** | text | `""`     | `.bib` or CSL JSON file (e.g. a Zotero/BetterBibTeX auto-export). Absolute, `~/…`, or vault-relative.                                                   |
-| **CSL style file**    | text | `""`     | `.csl` style. Use a **note-class** style (e.g. Chicago full note) so citations publish as footnotes. Empty uses pandoc's default (author-date, inline). |
+| Setting               | Type | Default  | Description                                                                                                                                                |
+| --------------------- | ---- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **pandoc path**       | text | `pandoc` | Bare command resolved via `PATH`, or a full path to the executable.                                                                                        |
+| **Bibliography file** | text | `""`     | `.bib` or CSL JSON file (e.g. a Zotero/BetterBibTeX auto-export). Absolute, `~/…`, or vault-relative.                                                      |
+| **CSL style file**    | text | `""`     | `.csl` style controlling inline citation appearance (author-date, numeric, …) and reference formatting. Empty uses pandoc's default (Chicago author-date). |
 
 ## Frontmatter properties
 
@@ -73,17 +73,17 @@ Refreshing is **manual only** — the plugin never auto-fetches.
 
 Each preset is edited via a modal:
 
-| Field                 | Description                                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**              | Shown as the panel tab label.                                                                                                        |
-| **Enabled**           | Disabled presets don't show as tabs.                                                                                                 |
-| **Status**            | `published` (default) or `draft`.                                                                                                    |
-| **Tags**              | Ordered list. First tag is Ghost's primary tag. Autocomplete from the cached tags.                                                   |
-| **Newsletter**        | Picked from the dropdown of cached newsletters. Empty disables email opt-in.                                                         |
-| **Canonical URL**     | Enable to set `canonical_url` + add a "Canonical version" callout.                                                                   |
-| **Render citations**  | Render bracketed pandoc citations (`[@citekey]`) via pandoc/citeproc before publishing. Uses the global Academic citations settings. |
-| **Listing note**      | Maintain a vault note linking every post currently published under this preset.                                                      |
-| **Listing note path** | Vault-relative path. Created with intermediate folders if missing.                                                                   |
+| Field                 | Description                                                                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**              | Shown as the panel tab label.                                                                                                                                    |
+| **Enabled**           | Disabled presets don't show as tabs.                                                                                                                             |
+| **Status**            | `published` (default) or `draft`.                                                                                                                                |
+| **Tags**              | Ordered list. First tag is Ghost's primary tag. Autocomplete from the cached tags.                                                                               |
+| **Newsletter**        | Picked from the dropdown of cached newsletters. Empty disables email opt-in.                                                                                     |
+| **Canonical URL**     | Enable to set `canonical_url` + add a "Canonical version" callout.                                                                                               |
+| **Render citations**  | Render pandoc citations (`@citekey`, `[@citekey]`) as inline citations with a References section before publishing. Uses the global Academic citations settings. |
+| **Listing note**      | Maintain a vault note linking every post currently published under this preset.                                                                                  |
+| **Listing note path** | Vault-relative path. Created with intermediate folders if missing.                                                                                               |
 
 Reorder presets in the list using the up / down arrows. The eye icon toggles enabled / disabled without deleting the preset.
 
