@@ -99,7 +99,7 @@ Up to 30 notes with a Ghost id and a sync timestamp for the active preset, sorte
     - Resolve `[[wikilinks]]`: LINK-block URL > known URL map > public-mirror URL (when eligibility key is set) > bold-text fallback.
 4. **Citations** (opt-in per preset). Pandoc citations (`@citekey`, `[@citekey]`) are resolved against the configured bibliography via `pandoc --citeproc` into inline citations (styled by the CSL) linked to a References section published as a verbatim HTML card. Desktop-only.
 5. **HTML build.** Markdown → HTML via `marked`, including footnotes (`text[^1]`, `[^1]: …`, and inline `^[…]`) rendered to superscript anchors plus a trailing footnotes section (wrapped in kg html-card markers so Ghost keeps the `#fn-N` anchor targets intact); canonical callout prepended when applicable.
-6. **Post create or update.** Status, tags, optional `canonical_url`, `custom_excerpt`. Existing posts use `updated_at` for optimistic concurrency. 404 triggers a clean recreate.
+6. **Post create or update.** Status, tags, optional `canonical_url`, `custom_excerpt`, and `feature_image` (uploaded from the feature-image frontmatter property when it resolves). Existing posts use `updated_at` for optimistic concurrency. 404 triggers a clean recreate.
 7. **Embed upgrades.** YouTube paragraphs → oembed cards; LINK-block paragraphs → bookmark cards.
 8. **Optional newsletter dispatch.** If the preset has a newsletter AND the note opted into email AND it has never been emailed, the draft transitions to published with the newsletter slug (the only Ghost transition that fires the email).
 9. **Frontmatter writeback.** ghost_id, synced_at, content_hash, preset id, optionally emailed_at, plus the cosmetic `published`, `date_published`, `date_updated` fields.

@@ -1,4 +1,5 @@
 import { escapeHtml } from '../utils/escape-html.fn'
+import { preserveCiteBlockquotes } from '../utils/preserve-cite-blockquotes.fn'
 import { promoteImagesToGhostCards } from '../utils/promote-images.fn'
 import { parseMarkdownWithFootnotes } from './footnotes'
 
@@ -9,7 +10,7 @@ import { parseMarkdownWithFootnotes } from './footnotes'
  */
 export function buildPostHtml(markdown: string, title: string, canonicalUrl: string): string {
     const rendered = parseMarkdownWithFootnotes(markdown)
-    const body = promoteImagesToGhostCards(rendered)
+    const body = preserveCiteBlockquotes(promoteImagesToGhostCards(rendered))
     if (!canonicalUrl) return body
 
     const callout =

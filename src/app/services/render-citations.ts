@@ -134,8 +134,15 @@ export function resolveConfigPath(vaultBasePath: string, configuredPath: string)
  */
 export function buildPandocArgs(bibliographyPath: string, cslPath: string): string[] {
     const args = [
-        '--from=markdown',
-        '--to=markdown-bracketed_spans',
+        // `smart` off on both sides keeps pandoc typography-neutral: the
+        // reader must not rewrite `---`/quotes, and the writer must not
+        // ASCII-ize the em dashes and curly quotes the author typed. Notes
+        // with citations then render exactly like notes without them.
+        '--from=markdown-smart',
+        // `raw_attribute` off: with it, inline HTML the author wrote (e.g.
+        // `<cite>` in a blockquote) round-trips as `` `<cite>`{=html} ``,
+        // which `marked` then renders as literal code in the post.
+        '--to=markdown-bracketed_spans-raw_attribute-smart',
         '--wrap=none',
         '--citeproc',
         `--bibliography=${bibliographyPath}`,

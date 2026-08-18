@@ -110,14 +110,17 @@ describe('buildPandocArgs', () => {
         const args = buildPandocArgs('/refs/library.bib', '')
         expect(args).toContain('--citeproc')
         expect(args).toContain('--bibliography=/refs/library.bib')
-        expect(args).toContain('--from=markdown')
+        // Typography must survive untouched in both directions.
+        expect(args).toContain('--from=markdown-smart')
         // Citations must link to their References entries for the theme's
         // hover popovers; the bibliography is rendered, not suppressed.
         expect(args).toContain('--metadata=link-citations:true')
         expect(args.some((a) => a.includes('suppress-bibliography'))).toBe(false)
         // Writer keeps fenced_divs (the refs div is parsed downstream) but
-        // must not emit bracketed spans — marked renders []{.class} literally.
-        expect(args).toContain('--to=markdown-bracketed_spans')
+        // must not emit bracketed spans (marked renders []{.class}
+        // literally) nor raw attributes (they turn author-written inline
+        // HTML like <cite> into literal `<cite>`{=html} code).
+        expect(args).toContain('--to=markdown-bracketed_spans-raw_attribute-smart')
         expect(args.some((a) => a.startsWith('--csl='))).toBe(false)
     })
 
@@ -233,6 +236,31 @@ describe('renderCitations', () => {
             expect(html).toContain('<section class="references" id="refs" data-references>')
             expect(html).toContain('<div class="csl-entry" id="ref-doe2020">')
             expect(html).toContain('<!--kg-card-begin: html-->')
+        }
+    )
+
+    test.skipIf(!pandocAvailable)(
+        'passes author-written inline HTML through verbatim',
+        async () => {
+            const dir = mkdtempSync(join(tmpdir(), 'gp-citations-'))
+            writeFileSync(join(dir, 'library.bib'), BIB)
+
+            const out = await renderCitations(
+                '> A quoted claim.[@doe2020] “Curly” too.\n> <cite>— Jane Doe</cite>',
+                {
+                    pandocPath: 'pandoc',
+                    bibliographyPath: 'library.bib',
+                    cslPath: '',
+                    vaultBasePath: dir
+                }
+            )
+
+            expect(out).toContain('<cite>— Jane Doe</cite>')
+            // No raw_attribute markers, which marked renders as literal code.
+            expect(out).not.toContain('{=html}')
+            // Typography survives: no ASCII-ization of em dashes / quotes.
+            expect(out).toContain('“Curly”')
+            expect(out).not.toContain('---')
         }
     )
 

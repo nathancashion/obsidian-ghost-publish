@@ -302,6 +302,11 @@ export class GhostPublishSettingTab extends PluginSettingTab {
                     key: 'excerpt',
                     label: 'Excerpt',
                     desc: 'Optional. Overrides the auto-derived Ghost custom_excerpt.'
+                },
+                {
+                    key: 'featureImage',
+                    label: 'Feature image',
+                    desc: "Optional. Image used as the post's Ghost feature image. Accepts a vault image name, wikilink, or external URL (first entry when the property is a list). Point this at your existing image property if you have one."
                 }
             ]
         for (const f of fieldDefs) {

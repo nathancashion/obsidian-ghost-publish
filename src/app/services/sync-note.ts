@@ -8,6 +8,7 @@ import { COSMETIC_FM } from '../constants'
 import { canonicalProbe } from './canonical-probe'
 import { buildLinkMap, substituteWikilinks } from './wikilink-resolver'
 import { uploadVaultImages } from './upload-vault-images'
+import { uploadFeatureImage } from './upload-feature-image'
 import { buildPostHtml } from './build-html'
 import { citationConfigFingerprint, hasCitations, renderCitations } from './render-citations'
 import { embedYoutubeUrls } from './embed-youtube'
@@ -150,6 +151,7 @@ export async function syncNote(
     }
 
     const html = buildPostHtml(working, title, canonicalUrl)
+    const featureImage = await uploadFeatureImage(app, client, file.path, fm[fmKeys.featureImage])
     const customExcerpt =
         typeof fm[fmKeys.excerpt] === 'string' && (fm[fmKeys.excerpt] as string).trim().length > 0
             ? (fm[fmKeys.excerpt] as string)
@@ -174,6 +176,9 @@ export async function syncNote(
                 updated_at: existing.updated_at
             }
             if (useCanonical) updatePayload['canonical_url'] = canonicalUrl
+            // Only send when resolved: an unset/unresolvable frontmatter
+            // image must not clear an image set in Ghost Admin.
+            if (featureImage) updatePayload['feature_image'] = featureImage
             const updated = await client.updatePost(postId, updatePayload)
             postId = updated.id
             action = 'updated'
@@ -202,6 +207,7 @@ export async function syncNote(
             custom_excerpt: customExcerpt
         }
         if (useCanonical) createPayload['canonical_url'] = canonicalUrl
+        if (featureImage) createPayload['feature_image'] = featureImage
         const created = await client.createPost(createPayload)
         postId = created.id
         if (action !== 'recreated') action = 'created'

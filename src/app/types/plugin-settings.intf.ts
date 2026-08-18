@@ -60,6 +60,7 @@ export interface FrontmatterPropertyNames {
     contentHash: string
     emailedAt: string
     excerpt: string
+    featureImage: string
 }
 
 /**
@@ -93,7 +94,8 @@ export const DEFAULT_FRONTMATTER: FrontmatterPropertyNames = {
     ghostId: 'ghost_publish_id',
     contentHash: 'ghost_publish_content_hash',
     emailedAt: 'ghost_publish_emailed_at',
-    excerpt: 'ghost_publish_excerpt'
+    excerpt: 'ghost_publish_excerpt',
+    featureImage: 'ghost_publish_feature_image'
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {

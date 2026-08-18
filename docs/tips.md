@@ -59,6 +59,29 @@ Because bare `@key` counts as a citation, an `@handle` mention in a citations-en
 
 Changing citation settings (or the preset toggle) re-syncs affected notes automatically — the content hash covers the citation config. One thing it can't see is edits **inside** your `.bib` file: to republish a note after fixing a library entry, touch the note body or delete its content-hash property.
 
+## Feature images
+
+Set the feature-image property (default `ghost_publish_feature_image`, configurable in settings) to give the post a Ghost feature image:
+
+```yaml
+ghost_publish_feature_image: cover.jpg
+```
+
+The value can be a vault image name or path, a wikilink (`[[cover.jpg]]`), an embed (`![[cover.jpg]]`), a markdown image, or an external URL. Vault images are uploaded to Ghost on sync; external URLs are used as-is. If the property is a list, the first usable entry wins — so if your notes already carry something like `image:` with a list of attachments, just point the setting at that property name instead of adding a new one.
+
+The image is only sent when it resolves, so a missing file never clears an image you set in Ghost Admin, and never fails the sync — it logs a warning and publishes without it.
+
+## Blockquote attributions
+
+`<cite>` inside a blockquote is preserved:
+
+```markdown
+> The quote itself.
+> <cite>— Jane Doe, in [Some Article](https://example.com)</cite>
+```
+
+Ghost's editor format has no `<cite>` equivalent and would otherwise drop the tag, so quotes using it are published as verbatim HTML cards. Quotes without `<cite>` stay native Ghost quote cards, editable in Ghost Admin as usual. Style the attribution in your theme with `blockquote cite`.
+
 ## Bring your own frontmatter
 
 If you already use a specific naming convention, set the frontmatter properties in settings to match. Every key is configurable. The plugin reads / writes only what you tell it to.
