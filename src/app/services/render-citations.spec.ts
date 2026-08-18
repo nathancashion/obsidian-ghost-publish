@@ -128,6 +128,16 @@ describe('buildPandocArgs', () => {
         const args = buildPandocArgs('/refs/library.bib', '/styles/vancouver.csl')
         expect(args).toContain('--csl=/styles/vancouver.csl')
     })
+
+    test('runs the citation-merging lua filter after citeproc', () => {
+        const args = buildPandocArgs('/refs/library.bib', '', '/tmp/merge.lua')
+        expect(args).toContain('--lua-filter=/tmp/merge.lua')
+        // Order matters: a filter listed before --citeproc would see
+        // unrendered Cite elements.
+        expect(args.indexOf('--lua-filter=/tmp/merge.lua')).toBeGreaterThan(
+            args.indexOf('--citeproc')
+        )
+    })
 })
 
 describe('convertReferencesDiv', () => {
@@ -223,6 +233,12 @@ describe('renderCitations', () => {
             // Citations render inline (author-date) and link to the entry…
             expect(out).toContain('](#ref-doe2020)')
             expect(out).not.toContain('[^1]')
+            // …with the author name inside the link, not just the year, so
+            // the whole citation is one hover/click target.
+            // (Comma placement varies by style; the point is the author
+            // name sits inside the link text.)
+            expect(out).toMatch(/\[Doe \(2020\)\]\(#ref-doe2020\)/)
+            expect(out).toMatch(/\[\(Doe,? 2020\)\]\(#ref-doe2020\)/)
             // …the References section is an html card with the entry id…
             expect(out).toContain('<!--kg-card-begin: html-->')
             expect(out).toContain('<div class="csl-entry" id="ref-doe2020">')

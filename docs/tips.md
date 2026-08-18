@@ -55,6 +55,8 @@ Presets with **Render citations** enabled resolve [pandoc citations](https://pan
 
 Configure the pandoc path, bibliography (`.bib` — a Zotero/BetterBibTeX auto-export works well), and CSL style under **Settings → Academic citations**. Citations render **inline**, exactly as the CSL style dictates — author-date styles give `Doe et al. (2020)`, numeric styles like Vancouver give `(1)` — with each citation linked to its entry in a **References** section appended to the post (Quarto-style). The entry ids survive publishing, so a small theme script can show the full reference in a hover popover. Your own footnotes (`[^1]`, `^[aside]`) are unaffected and keep their separate footnote popups.
 
+The **whole** citation is the link, author name included: a narrative citation publishes as `<a href="#ref-key">Doe et al. (2020)</a>`, not just the year, so hovering anywhere on it shows the reference. Citations naming several sources at once (`[@a; @b]`) keep one link per source instead. Style them in your theme with `a[href^="#ref-"]` — full accent colouring reads heavily in dense prose, so a muted colour with an accent on hover usually works better.
+
 Because bare `@key` counts as a citation, an `@handle` mention in a citations-enabled note would be misread as a citekey (and render as `**handle?**`) — escape such mentions as `\@handle`. Email addresses are fine unescaped.
 
 Changing citation settings (or the preset toggle) re-syncs affected notes automatically — the content hash covers the citation config. One thing it can't see is edits **inside** your `.bib` file: to republish a note after fixing a library entry, touch the note body or delete its content-hash property.

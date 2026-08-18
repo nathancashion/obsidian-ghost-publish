@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { existsSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { delimiter, isAbsolute, join } from 'node:path'
 import { marked } from 'marked'
 import { log } from '../../utils/log'
@@ -77,8 +77,9 @@ export function citationConfigFingerprint(
     if (!citationsEnabled) return ''
     // The version marker invalidates hashes when the citation pipeline
     // itself changes output shape (v2: inline citations + References
-    // section replaced the earlier footnote-style rendering).
-    return `citations:v2:${settings.pandocPath}|${settings.bibliographyPath}|${settings.cslPath}`
+    // section replaced footnote-style rendering; v3: single-source
+    // citations became one link covering author + year).
+    return `citations:v3:${settings.pandocPath}|${settings.bibliographyPath}|${settings.cslPath}`
 }
 
 /**
@@ -125,6 +126,32 @@ export function resolveConfigPath(vaultBasePath: string, configuredPath: string)
 }
 
 /**
+ * Lua filter run after citeproc: rewrites each single-source citation
+ * into one link spanning the whole rendered citation, so the author name
+ * is part of the link (and therefore of the theme's hover target) rather
+ * than only the year — `[Doe et al. (2020)](#ref-key)` instead of
+ * `Doe et al. ([2020](#ref-key))`. Existing inner links are unwrapped
+ * first; nested links are invalid HTML.
+ *
+ * Multi-source citations (`[@a; @b]`) are left untouched: each entry
+ * keeps its own link, since one wrapper could only point at one entry.
+ */
+const MERGE_CITATIONS_LUA = `function Cite(el)
+  if #el.citations ~= 1 then return nil end
+  local id = el.citations[1].id
+  local walked = pandoc.walk_inline(el, {
+    Link = function(link) return link.content end
+  })
+  return pandoc.Link(walked.content, '#ref-' .. id)
+end
+`
+
+/** Stable temp path for the Lua filter; rewritten on every run. */
+function luaFilterPath(): string {
+    return join(tmpdir(), 'ghost-publish-merge-citations.lua')
+}
+
+/**
  * Build the pandoc argument list. Markdown → markdown keeps the rest of
  * the pipeline unchanged. `link-citations` makes every rendered citation
  * link to its `#ref-<citekey>` entry. The writer keeps `fenced_divs` (the
@@ -132,7 +159,11 @@ export function resolveConfigPath(vaultBasePath: string, configuredPath: string)
  * `bracketed_spans` so csl span wrappers can't leak `[…]{.csl-…}` syntax
  * that `marked` renders literally.
  */
-export function buildPandocArgs(bibliographyPath: string, cslPath: string): string[] {
+export function buildPandocArgs(
+    bibliographyPath: string,
+    cslPath: string,
+    filterPath: string = luaFilterPath()
+): string[] {
     const args = [
         // `smart` off on both sides keeps pandoc typography-neutral: the
         // reader must not rewrite `---`/quotes, and the writer must not
@@ -145,6 +176,8 @@ export function buildPandocArgs(bibliographyPath: string, cslPath: string): stri
         '--to=markdown-bracketed_spans-raw_attribute-smart',
         '--wrap=none',
         '--citeproc',
+        // Must come after --citeproc so it sees rendered citations.
+        `--lua-filter=${filterPath}`,
         `--bibliography=${bibliographyPath}`,
         '--metadata=link-citations:true'
     ]
@@ -247,7 +280,14 @@ export async function renderCitations(
     }
     const csl = resolveConfigPath(options.vaultBasePath, options.cslPath)
     const pandoc = resolvePandocBinary(options.pandocPath)
-    const out = await runPandoc(pandoc, buildPandocArgs(bibliography, csl), markdown)
+
+    // The filter ships as a string and is materialized next to the OS temp
+    // dir on every run: content is constant, so rewriting is idempotent and
+    // needs no cleanup or first-run bootstrapping.
+    const filterPath = luaFilterPath()
+    writeFileSync(filterPath, MERGE_CITATIONS_LUA, 'utf8')
+
+    const out = await runPandoc(pandoc, buildPandocArgs(bibliography, csl, filterPath), markdown)
     return convertReferencesDiv(out)
 }
 
