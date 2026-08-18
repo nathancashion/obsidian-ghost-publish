@@ -110,8 +110,9 @@ describe('buildPandocArgs', () => {
         const args = buildPandocArgs('/refs/library.bib', '')
         expect(args).toContain('--citeproc')
         expect(args).toContain('--bibliography=/refs/library.bib')
-        // Typography must survive untouched in both directions.
-        expect(args).toContain('--from=markdown-smart')
+        // Typography must survive untouched in both directions, and
+        // callout divs must stay raw HTML rather than becoming fenced divs.
+        expect(args).toContain('--from=markdown-smart-native_divs')
         // Citations must link to their References entries for the theme's
         // hover popovers; the bibliography is rendered, not suppressed.
         expect(args).toContain('--metadata=link-citations:true')

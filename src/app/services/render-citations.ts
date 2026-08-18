@@ -169,7 +169,10 @@ export function buildPandocArgs(
         // reader must not rewrite `---`/quotes, and the writer must not
         // ASCII-ize the em dashes and curly quotes the author typed. Notes
         // with citations then render exactly like notes without them.
-        '--from=markdown-smart',
+        // `native_divs` off keeps the callout `<div>`s emitted upstream as
+        // raw HTML; as native Divs the writer would turn them into fenced
+        // `::: {.callout}` blocks that `marked` renders literally.
+        '--from=markdown-smart-native_divs',
         // `raw_attribute` off: with it, inline HTML the author wrote (e.g.
         // `<cite>` in a blockquote) round-trips as `` `<cite>`{=html} ``,
         // which `marked` then renders as literal code in the post.

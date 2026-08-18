@@ -73,6 +73,21 @@ The value can be a vault image name or path, a wikilink (`[[cover.jpg]]`), an em
 
 The image is only sent when it resolves, so a missing file never clears an image you set in Ghost Admin, and never fails the sync — it logs a warning and publishes without it.
 
+## Callouts
+
+Obsidian callouts publish as styled callout blocks:
+
+```markdown
+> [!question] Research Question
+> **What can telemedicine providers learn from live streamers?**
+```
+
+Type aliases follow Obsidian (`faq` → question, `cite` → quote, `error` → danger, and so on), and a callout with no title falls back to the type name, exactly as in Obsidian. Foldable callouts (`[!type]-` collapsed, `[!type]+` expanded) publish as `<details>` elements, so they stay foldable on the blog without any JavaScript. Callout types your vault defines that Obsidian doesn't ship are passed through untouched for your theme to style.
+
+The body keeps working like normal note content: **bold**, links, lists, images, footnotes, citations, and even nested callouts inside a callout all render.
+
+Ghost has no callout equivalent, so these publish as HTML cards. Style them in your theme with `.callout`, `.callout-title`, `.callout-content`, the per-type `.callout-<type>` classes, or the raw `[data-callout="…"]` attribute.
+
 ## Blockquote attributions
 
 `<cite>` inside a blockquote is preserved:

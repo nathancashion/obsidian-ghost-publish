@@ -18,6 +18,7 @@ import {
     stripLeadingH1,
     stripVaultOnlySections
 } from '../utils/strip-sections.fn'
+import { processCallouts } from '../utils/process-callouts.fn'
 import { processYoutubeEmbeds } from '../utils/process-youtube.fn'
 import { processLinkBlocks } from '../utils/process-link-blocks.fn'
 import { vaultPathToUrl } from '../utils/vault-path-to-url.fn'
@@ -126,6 +127,12 @@ export async function syncNote(
 
     working = await uploadVaultImages(app, client, file.path, working)
     working = substituteWikilinks(working, linkMap)
+
+    // Callouts become HTML blocks with markdown bodies before the citation
+    // step: pandoc escapes the `[!type]` marker and folds the blockquote
+    // onto one line, but leaves these blocks alone while still resolving
+    // citations inside them.
+    working = processCallouts(working)
 
     // Citations run after wikilinks / images / markers are plain markdown
     // (pandoc round-trips them untouched) and before the HTML build, so a

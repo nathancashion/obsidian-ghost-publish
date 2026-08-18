@@ -14,6 +14,7 @@ Publish your vault notes to a [Ghost](https://ghost.org) blog with configurable 
 - **Feature images** — a frontmatter property (vault image, wikilink, or external URL) sets the post's Ghost feature image.
 - **Wikilink resolution** — known-URL map, optional public-mirror lookup, bold-text fallback.
 - **Embed upgrades** — YouTube links become Ghost oembed cards; `LINK:` blocks become bookmark cards.
+- **Callouts** — Obsidian callouts (`> [!note] Title`) publish as styled callout blocks, foldable ones as `<details>`, with their bodies fully rendered (links, lists, footnotes, citations, nesting).
 - **Footnotes** — Markdown footnotes (`text[^1]`, `[^1]: …`, and inline `^[…]`) are rendered to proper footnote anchors and a footnotes section on the published post — published as a verbatim HTML card so anchor targets survive and theme footnote scripts (e.g. Littlefoot popovers) keep working.
 - **Academic citations (optional, per preset)** — pandoc citations (`@citekey` and `[@citekey]`) are resolved against your `.bib` bibliography via `pandoc --citeproc` and publish as inline citations (styled by your CSL) linked to a References section, Quarto-style. Bring your Zotero/BetterBibTeX library.
 - **Configurable frontmatter keys** — bring your own property names so existing vaults can keep their conventions.

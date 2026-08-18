@@ -97,6 +97,7 @@ Up to 30 notes with a Ghost id and a sync timestamp for the active preset, sorte
     - Rewrite `![](youtube-url)` and `LINK:` blocks to marker paragraphs.
     - Upload every `![[image]]` to Ghost; rewrite to `![alt](ghost-url)`.
     - Resolve `[[wikilinks]]`: LINK-block URL > known URL map > public-mirror URL (when eligibility key is set) > bold-text fallback.
+    - Convert Obsidian callouts (`> [!type] Title`) to callout blocks; foldable ones become `<details>`.
 4. **Citations** (opt-in per preset). Pandoc citations (`@citekey`, `[@citekey]`) are resolved against the configured bibliography via `pandoc --citeproc` into inline citations (styled by the CSL) linked to a References section published as a verbatim HTML card. Desktop-only.
 5. **HTML build.** Markdown → HTML via `marked`, including footnotes (`text[^1]`, `[^1]: …`, and inline `^[…]`) rendered to superscript anchors plus a trailing footnotes section (wrapped in kg html-card markers so Ghost keeps the `#fn-N` anchor targets intact); canonical callout prepended when applicable.
 6. **Post create or update.** Status, tags, optional `canonical_url`, `custom_excerpt`, and `feature_image` (uploaded from the feature-image frontmatter property when it resolves). Existing posts use `updated_at` for optimistic concurrency. 404 triggers a clean recreate.
