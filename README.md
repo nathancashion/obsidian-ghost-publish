@@ -10,7 +10,7 @@ Publish your vault notes to a [Ghost](https://ghost.org) blog with configurable 
 - **Triage** — pick notes to publish from a time-range filter, with one-click _publish_, _publish + email_ and _ignore_ actions.
 - **Idempotent sync** — each note's body is hashed (SHA-256); unchanged notes skip the round-trip. Ghost post ids are recorded in frontmatter for in-place updates.
 - **Auto-fetched tag and newsletter lists** — connect once, click _Refresh tags & newsletters_, and the preset editor offers autocomplete + dropdowns from the cached data.
-- **Image upload** — every `![[image]]` embed is uploaded to Ghost and rewritten to a Ghost image card.
+- **Image upload** — vault images are uploaded to Ghost and rewritten to Ghost image cards, from both `![[image]]` embeds and standard `![alt](image.png)` markdown. Add a caption with `![[image|Your caption]]` or `![alt](image.png "Your caption")`; captions may contain links and emphasis.
 - **Feature images** — a frontmatter property (vault image, wikilink, or external URL) sets the post's Ghost feature image.
 - **Wikilink resolution** — known-URL map, optional public-mirror lookup, bold-text fallback.
 - **Embed upgrades** — YouTube links become Ghost oembed cards; `LINK:` blocks become bookmark cards.

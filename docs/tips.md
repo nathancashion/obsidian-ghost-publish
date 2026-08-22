@@ -73,6 +73,24 @@ The value can be a vault image name or path, a wikilink (`[[cover.jpg]]`), an em
 
 The image is only sent when it resolves, so a missing file never clears an image you set in Ghost Admin, and never fails the sync — it logs a warning and publishes without it.
 
+## Image captions
+
+Body images are uploaded from either syntax, and both take a caption:
+
+```markdown
+![[chart.png|Figure 1 from [O'Bryan et al., 2025](https://example.com/paper)]]
+
+![A line chart](chart.png "Figure 1 from [O'Bryan et al., 2025](https://example.com/paper)")
+```
+
+For an embed, the text after the `|` is the caption. For a standard markdown image, the quoted title is the caption and `alt` stays alt text. Captions may contain links, emphasis, and inline HTML.
+
+One exception preserves vanilla Obsidian behaviour: an alias that is just a size (`![[chart.png|300]]`, `![[chart.png|640x480]]`) stays a size hint and does not become a caption.
+
+A captioned image on its own line publishes as a native Ghost image card with the caption filled in — still editable in Ghost Admin. A captioned image used mid-sentence stays inline, and its caption becomes alt text instead, since a captioned card is a block element and would break the paragraph.
+
+Images that are already external URLs are left alone; only vault files are uploaded.
+
 ## Callouts
 
 Obsidian callouts publish as styled callout blocks:

@@ -95,7 +95,7 @@ Up to 30 notes with a Ghost id and a sync timestamp for the active preset, sorte
     - Strip H2 sections matching the configured strip list (case- and punctuation-insensitive).
     - Strip the very first H1 (Ghost adds the title automatically).
     - Rewrite `![](youtube-url)` and `LINK:` blocks to marker paragraphs.
-    - Upload every `![[image]]` to Ghost; rewrite to `![alt](ghost-url)`.
+    - Upload vault images to Ghost, from both `![[image]]` embeds and standard `![alt](image.png)` markdown; rewrite to the Ghost URL. See [Image captions](tips.md#image-captions).
     - Resolve `[[wikilinks]]`: LINK-block URL > known URL map > public-mirror URL (when eligibility key is set) > bold-text fallback.
     - Convert Obsidian callouts (`> [!type] Title`) to callout blocks; foldable ones become `<details>`.
 4. **Citations** (opt-in per preset). Pandoc citations (`@citekey`, `[@citekey]`) are resolved against the configured bibliography via `pandoc --citeproc` into inline citations (styled by the CSL) linked to a References section published as a verbatim HTML card. Desktop-only.
